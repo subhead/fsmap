@@ -3,7 +3,6 @@
  */
 L.TileLayer.QuadKeyTileLayer = L.TileLayer.extend({
     getTileUrl: function (tilePoint) {
-        this._adjustTilePoint(tilePoint);
         return L.Util.template(this._url, {
             s: this._getSubdomain(tilePoint),
             q: this._quadKey(tilePoint.x, tilePoint.y, this._getZoomForUrl())
@@ -30,7 +29,7 @@ L.TileLayer.QuadKeyTileLayer = L.TileLayer.extend({
 /*
  * A layer without content. When enabled, it adds a border to all visible tiles.
  */
-var TileBorderLayer = L.Class.extend({
+var TileBorderLayer = L.Layer.extend({
     onAdd: function (map) {
         $(map.getContainer()).addClass('show-tile-borders');
     },
@@ -150,16 +149,6 @@ var bingAerial = new L.TileLayer.QuadKeyTileLayer(
     }
 );
 
-var hillshading = new L.TileLayer(
-    'https://tiles.wmflabs.org/hillshading/{z}/{x}/{y}.png',
-    {
-        attribution: "Hillshading by <a href=\'http://hikebikemap.org/\'>Colin Marquardt / hikebikemap.de</a> from NASA SRTM data",
-        minZoom: 3,
-        maxNativeZoom: 16,
-        overlay: true
-    }
-);
-
 var baseLayers = {
     "OpenStreetMap": osmMapnik,
     "OpenTopoMap": osmOpenTopoMap,
@@ -171,7 +160,6 @@ var baseLayers = {
 };
 
 var overlayLayers = {
-    "Hillshading": hillshading,
     "OpenStreetMap (opacity=0.5)": osmMapnikOverlay,
     "Tile Borders": new TileBorderLayer(),
 };
@@ -179,7 +167,7 @@ var overlayLayers = {
 /*
  * Set path to default marker images
  */
-L.Icon.Default.imagePath = 'images';
+L.Icon.Default.imagePath = 'images/';
 
 /*
  * Initialization of map.
@@ -259,6 +247,11 @@ let map = L.map('map', {
     fullscreenControl: true,
 });
 
+/*
+ * Remove Ukrainian flag from attribution to keep this politically neutral.
+ */
+map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="A JavaScript library for interactive maps">Leaflet</a>');
+
 function getOsmMapnikUrl(coordinates, zoom) {
     let lat = coordinates.lat;
     let lon = coordinates.lng;
@@ -304,13 +297,13 @@ function createMarker(position, options = {}) {
             {
                 text: 'Show coordinates',
                 callback: function (e) {
-                    showCoordinates(position)
+                    showCoordinates(marker.getLatLng())
                 }
             },
             {
                 text: 'Share marker',
                 callback: function (e) {
-                    shareCoordinates(position);
+                    shareCoordinates(marker.getLatLng());
                 }
             },
         ]
@@ -470,6 +463,8 @@ let fileLayerControl = L.Control.fileLayerLoad({
             layer.bindPopup(popupContent.join("<br>"));
         },
     },
+
+    fileSizeLimit: 51200,
 }).addTo(map);
 
 fileLayerControl.loader.on('data:loaded', function (e) {
